@@ -6,7 +6,7 @@ Sample script for checking the organization and user rate limits given an API ke
 
 To use this script you provide a valid Threat Grid API key as a command line paramter:
 ```
-python  check_rate_limit.py 139ec4f94a8c908e20e7c2dce5092af4
+python check_rate_limit.py 139ec4f94a8c908e20e7c2dce5092af4
 ```
 
 #### Example script output
