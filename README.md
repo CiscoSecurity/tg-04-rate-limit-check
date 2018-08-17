@@ -1,6 +1,6 @@
 ### Rate Limit check
 
-Sample script for checking the organization and user rate limits given an API key
+Sample script for checking the user and organization API rate limits given an API key
 
 ### Usage
 
