@@ -2,58 +2,69 @@ import os
 import sys
 import requests
 
-# Validate a command-line argument was provided
-if len(sys.argv) < 2:
+
+def get(url):
+    """ GET the URL and return decoded JSON"""
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as error_message:
+        sys.exit(error_message)
+
+
+def whoami(_host_name, _api_key):
+    """
+    Build and query whoami URL
+    Return login for API key
+    """
+    whoami_url = f'https://{_host_name}/api/v3/session/whoami?api_key={_api_key}'
+    return get(whoami_url)['data']['login']
+
+
+def limits(_login, _host_name, _api_key):
+    """
+    Build and query rate limit URL
+    Return dictionary with elements we care about
+    """
+    rate_limit_url = (f'https://{_host_name}/api/v3/users/{_login}/rate-limit?api_key={_api_key}')
+    response = get(rate_limit_url)
+
+    user_available = response['data']['user']['submissions-available']
+    user_wait = response['data']['user']['submission-wait-seconds']
+    org_available = response['data']['organization']['submissions-available']
+    org_wait = response['data']['organization']['submission-wait-seconds']
+
+    return {'user_available':user_available,
+            'user_wait':user_wait,
+            'org_available':org_available,
+            'org_wait':org_wait}
+
+
+try:
+    api_key = sys.argv[1]
+except IndexError as error_message:
     sys.exit('No API Key provided!\n\n'
              'Usage:\n {0} <API_KEY>\n\n'
              'Example:\n {0} 139ec4f94a8c908e20e7c2dce5092af4'
              .format(os.path.basename(__file__)))
 
-api_key = sys.argv[1]
-
 host_name = 'panacea.threatgrid.com'
 
-def get(query):
-    """ Get the URL and return decoded JSON"""
-    try:
-        response = requests.get(query)
-        if response.status_code // 100 != 2:
-            return "Error: {}".format(response)
-        return response.json()
-    except requests.exceptions.RequestException as error_message:
-        return 'Error: {}'.format(error_message)
-
-def whoami(_host_name=host_name, _api_key=api_key):
-    """ Build the WHOAMI URL """
-    whoami_url = 'https://{}/api/v3/session/whoami?api_key={}'.format(_host_name, _api_key)
-    return whoami_url
-
-def limit(_login, _host_name=host_name, _api_key=api_key):
-    """ Build the rate limit URL """
-    rate_limit_url = ('https://{}/api/v3/users/{}/rate-limit?api_key={}'
-                      .format(_host_name, _login, _api_key))
-    return rate_limit_url
-
 # Get login
-login = get(whoami())['data']['login']
+login = whoami(host_name, api_key)
 
 # Use login to get rate-limit information
-limit = get(limit(login))
-
-# Parse user limits from rate-limit information
-user_available = limit['data']['user']['submissions-available']
-user_wait = limit['data']['user']['submission-wait-seconds']
-
-# Parse org limits from rate-limit inoformation
-org_available = limit['data']['organization']['submissions-available']
-org_wait = limit['data']['organization']['submission-wait-seconds']
+limits = limits(login, host_name, api_key)
 
 # Print output
-print('Your login is: {}\n'.format(login))
+print(f'Your login is: {login}\n')
 
-print('You have {} samples available '
-      '(if \'None\' there are no user specific limits)'.format(user_available))
-print('You must wait {} seconds before submitting another sample\n'.format(user_wait))
+if limits["user_available"]:
+    print(f'You have {limits["user_available"]} samples available ')
+else:
+    print('You have no user specific limits')
+print(f'You must wait {limits["user_wait"]} seconds before submitting another sample\n')
 
-print('Your org has {} samples available'.format(org_available))
-print('Your org must wait {} seconds before submitting another sample'.format(org_wait))
+print(f'Your org has {limits["org_available"]} samples available')
+print(f'Your org must wait {limits["org_wait"]} seconds before submitting another sample')
