@@ -1,3 +1,5 @@
+[![Gitter chat](https://img.shields.io/badge/gitter-join%20chat-brightgreen.svg)](https://gitter.im/CiscoSecurity/Threat-Grid "Gitter chat")
+
 ### Rate Limit check
 
 Sample script for checking the user and organization API rate limits given an API key
